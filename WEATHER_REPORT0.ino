@@ -1,5 +1,8 @@
+#include <AsyncTCP.h>
 #include <LiquidCrystal.h>
 #include <IRremote.hpp>
+#include <ESPAsyncWebServer.h>
+
 
 #define POWER_OFF 0xba45ff00
 #define BUTTON_0  0xe916ff00
@@ -52,8 +55,7 @@ void loop() {
   lcd.setCursor(4, 0);
   lcd.print(dB);
   if (irrecv.decode()) {
-        lcd.setCursor(0, 1);
-        lcd.print(irrecv.decodedIRData.decodedRawData);
+        Serial.println(irrecv.decodedIRData.decodedRawData, HEX);
         irrecv.resume();
     }
   delay(400);
