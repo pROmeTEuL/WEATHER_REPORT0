@@ -1,4 +1,11 @@
 #include <LiquidCrystal.h>
+#include <IRremote.hpp>
+
+#define POWER_OFF 0xba45ff00
+#define BUTTON_0  0xe916ff00
+#define BUTTON_1  0xf30cff00
+#define BUTTON_2  0xe718ff00
+#define BUTTON_3  0xa15eff00
 
 const int 
 d0 = 4,
@@ -12,12 +19,15 @@ d7 = 23;
 const int rs = 15;
 const int e = 8;
 const int mic_pin = 2;
+const int ir_pin = 16;
+IRrecv irrecv(ir_pin);
 
 LiquidCrystal lcd(22, 21, 5, 18, 23, 19);
 
 
 void setup() {
   Serial.begin(115200);
+  irrecv.enableIRIn();
   pinMode(mic_pin, INPUT);
   lcd.begin(16, 2);
   lcd.clear();
@@ -41,5 +51,10 @@ void loop() {
   float dB = 20 * log10(voltage / 0.00632);
   lcd.setCursor(4, 0);
   lcd.print(dB);
+  if (irrecv.decode()) {
+        lcd.setCursor(0, 1);
+        lcd.print(irrecv.decodedIRData.decodedRawData);
+        irrecv.resume();
+    }
   delay(400);
 }
