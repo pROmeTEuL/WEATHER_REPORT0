@@ -103,7 +103,9 @@ function reset_function(){
     let xhttp = new XMLHttpRequest();
     xhttp.open("POST", "/reset", true);
     xhttp.onreadystatechange = function(){
-      alert("Reseting... It might take a while...");
+      if (this.readyState == 4 && this.status == 200) {
+        alert("Reseting... It might take a while...");
+      }
     };
     xhttp.send();
   }
@@ -138,9 +140,6 @@ function HUM() {
   xhttp.open("GET", "/hum", true);
   xhttp.send();
 }
-setInterval(PR(), 10000);
-setInterval(TEMP(), 10000);
-setInterval(HUM(), 10000);
 </script>
 </html>)rawliteral";
 
