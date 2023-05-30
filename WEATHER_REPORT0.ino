@@ -36,11 +36,14 @@ const int e = 8;
 LiquidCrystal lcd(22, 21, 5, 18, 23, 19);
 
 // microphone
-const int mic_pin = 2;
-const int ir_pin = 34;
+const int mic_pin = 26;
 float dBs = 0.f;
+const int quiet_pin = 4;
+const int medium_pin = 16;
+const int loud_pin = 17;
 
 // ir receiver
+const int ir_pin = 34;
 IRrecv receiver(ir_pin);
 decode_results results;
 enum Status {
@@ -61,6 +64,7 @@ float humidity = 0.f;
 float temperature = 0.f;
 DHT dht(dht_pin);
 
+// html code
 const char index_html[] PROGMEM = R"rawliteral(
 <!DOCTYPE html>
 <style>
@@ -143,6 +147,12 @@ function HUM() {
 </script>
 </html>)rawliteral";
 
+/*******************************
+********************************
+***********FUNCTIONS************
+********************************
+*******************************/
+
 String processor(const String& var) {
   if(var == "TEMP"){
     return String(temperature);
@@ -171,7 +181,7 @@ void read_db()
   float voltage = sensorValue * (3.3 / 3071.0);
   Serial.print("min="); Serial.println(min);
   Serial.print("max="); Serial.println(max);
-  Serial.print(" voltage="); Serial.println(voltage);
+  Serial.print("voltage="); Serial.println(voltage);
   dBs = 20 * log10(voltage / 0.000632);
 }
 
@@ -184,6 +194,27 @@ void read_pr()
 
   Serial.print("value: ");
   Serial.println(pr_value);
+}
+
+void turn_on_led(uint8_t number)
+{
+  switch(number) {
+    case 1:
+      digitalWrite(quiet_pin, HIGH);
+      digitalWrite(medium_pin, LOW);
+      digitalWrite(loud_pin, LOW);
+      break;
+    case 2:
+      digitalWrite(quiet_pin, LOW);
+      digitalWrite(medium_pin, HIGH);
+      digitalWrite(loud_pin, LOW);
+      break;
+    case 3:
+      digitalWrite(quiet_pin, LOW);
+      digitalWrite(medium_pin, LOW);
+      digitalWrite(loud_pin, HIGH);
+      break;
+  }
 }
 
 void setup()
@@ -201,7 +232,7 @@ void setup()
   
   server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
     auto response = request->beginResponse_P(200, "text/html", index_html, processor);
-    response->addHeader("Refresh", "5");
+    response->addHeader("Refresh", "10");
     request->send(response);
   });
   server.on("/pr", HTTP_GET, [](AsyncWebServerRequest *request) {
@@ -226,11 +257,13 @@ void setup()
   pinMode(mic_pin, INPUT);
   pinMode(pr_power, OUTPUT);
   pinMode(pr_signal, INPUT);
+  pinMode(quiet_pin, OUTPUT);
+  pinMode(medium_pin, OUTPUT);
+  pinMode(loud_pin, OUTPUT);
 }
 
 void loop()
 {
-  bool skip = false;
   read_db();
   read_pr();
   dht.read_dht();
@@ -274,13 +307,16 @@ void loop()
           case BUTTON_3:
             current = PR;
             break;
-          case BUTTON_9:
-            skip = true;
-            break;
         }
         delay(50);
         receiver.resume();
   }
-  if (!skip)
-    delay(300);
+  if (dBs < 30) {
+    turn_on_led(1);
+  } else if (dBs < 50) {
+    turn_on_led(2);
+  } else {
+    turn_on_led(3);
+  }
+  delay(300);
 }
