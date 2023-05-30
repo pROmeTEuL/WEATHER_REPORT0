@@ -57,6 +57,10 @@ Status current = TEMP;
 const int pr_signal = 35;
 const int pr_power = 32;
 float pr_value = 0.f;
+struct PR {
+  float mm = 0.f;
+  long timeout = 0;
+} maximum;
 
 // dht
 const int dht_pin = 25;
@@ -191,7 +195,7 @@ void read_pr()
   delay(10);
   pr_value = float(analogRead(pr_signal)) / 100.f; 
   digitalWrite(pr_power, LOW);
-
+  
   Serial.print("value: ");
   Serial.println(pr_value);
 }
@@ -236,7 +240,7 @@ void setup()
     request->send(response);
   });
   server.on("/pr", HTTP_GET, [](AsyncWebServerRequest *request) {
-    request->send_P(200, "text/plain", String(pr_value).c_str());
+    request->send_P(200, "text/plain", String(maximum.mm).c_str());
   });
   server.on("/temp", HTTP_GET, [](AsyncWebServerRequest * request){
     request->send_P(200, "text/plain", String(temperature).c_str());
@@ -269,6 +273,13 @@ void loop()
   dht.read_dht();
   temperature = dht.temperature;
   humidity = dht.humidity;
+  if (pr_value >= maximum.mm) {
+    maximum.mm = pr_value;
+    maximum.timeout = millis()/1000;
+  }
+  if (millis()/1000 - maximum.timeout > 10) {
+    maximum.mm = 0;
+  }
   switch (current) {
     case TEMP:
       lcd.setCursor(0, 0);
@@ -288,7 +299,7 @@ void loop()
       lcd.setCursor(0, 0);
       lcd.print("Rainfall:   ");
       lcd.setCursor(0, 1);
-      lcd.print(pr_value);
+      lcd.print(maximum.mm);
       lcd.print("mm      ");
       break;
   }
